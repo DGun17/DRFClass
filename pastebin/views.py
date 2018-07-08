@@ -2,23 +2,22 @@
 from __future__ import unicode_literals
 
 from django.contrib.auth.models import User
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.http import JsonResponse
 
 
 # Create your views here.
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.generics import get_object_or_404
-from rest_framework.mixins import RetrieveModelMixin, ListModelMixin
-from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.viewsets import ViewSet, ModelViewSet, GenericViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ViewSet, ModelViewSet
 
-from pastebin.models import Snippet
+from pastebin.models import Snippet, AuthToken
 from pastebin.serializers import SnippetModelSerializer
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework import exceptions
+
 
 @csrf_exempt
 @api_view(http_method_names=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
@@ -58,6 +57,7 @@ def get_snippets(request, pk=None):
         obj.delete()
         return Response(status=204)
 
+
 class SnippetView(APIView):
     def get(self, request, pk=None, *args, **kwargs):
         if pk is not None:
@@ -94,7 +94,9 @@ class SnippetView(APIView):
         obj.delete()
         return Response(status=204)
 
+
 snippet_view = SnippetView.as_view()
+
 
 class SnippetViewSet(ViewSet):
     permission_classes = []
@@ -144,10 +146,12 @@ class SnippetViewSet(ViewSet):
             serializer = SnippetModelSerializer(obj)
             return JsonResponse(serializer.data, status=201)
 
+
 detail_view = SnippetViewSet.as_view({'get': 'retrieve'})
 list_view = SnippetViewSet.as_view({'get': 'list'})
 update_view = SnippetViewSet.as_view({'put': 'update'})
 delete_view = SnippetViewSet.as_view({'delete': 'destroy'})
+
 
 class SnippetModelViewSet(ModelViewSet):
     queryset = Snippet.objects.all()
@@ -155,3 +159,38 @@ class SnippetModelViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class LoginAPI(ObtainAuthToken):
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        sessions = AuthToken.objects.filter(user=user)
+        if len(sessions) < 5:
+            token = AuthToken.objects.create(user=user)  # Create a token each login request
+        else:
+            raise exceptions.AuthenticationFailed(detail='You have maximum login session (5)')
+        return Response({'token': token.key})
+
+
+class LogoutAPI(APIView):
+
+    def get(self, request, *args, **kwargs):
+        if getattr(request.user, 'is_anonymous') and getattr(request, 'auth') is not None:
+            raise exceptions.NotAuthenticated(detail='User not logged')
+        else:
+            token = request.auth
+            try:
+                AuthToken.objects.get(key=token.key)
+            except Exception as e:
+                raise exceptions.NotAuthenticated(detail=e)
+            else:
+                token.delete()
+                return Response({'message': 'Logout successfully'})
+
+
+obtain_auth_token = LoginAPI.as_view()
+logout_token = LogoutAPI.as_view()

@@ -4,15 +4,18 @@ from rest_framework.renderers import JSONRenderer
 
 from pastebin.models import Snippet
 
+
 class NameUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'first_name', 'last_name')
 
+
 class SnippetSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=140)
     code = serializers.CharField()
     lang = serializers.ChoiceField(choices=Snippet.LANGS)
+
 
 class SnippetModelSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
@@ -24,4 +27,3 @@ class SnippetModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Snippet
         fields = ('id', 'title', 'code', 'lang', 'user')
-

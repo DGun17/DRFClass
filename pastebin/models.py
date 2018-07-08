@@ -3,8 +3,10 @@ from __future__ import unicode_literals
 
 from django.contrib.auth.models import User
 from django.db import models
+from rest_framework.authtoken.models import Token
 
 # Create your models here.
+
 
 class Snippet(models.Model):
     LANGS = (
@@ -17,5 +19,11 @@ class Snippet(models.Model):
     code = models.TextField()
     lang = models.CharField(max_length=40, choices=LANGS)
 
-    def __unicode__(self):
+    def __str__(self):
         return u'{}'.format(self.title)
+
+
+class AuthToken(Token):
+    user = models.ForeignKey(User, related_name='auth_token',
+                             on_delete=models.CASCADE, verbose_name=("User")
+                             )

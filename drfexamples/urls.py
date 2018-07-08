@@ -15,10 +15,10 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
-from rest_framework.authtoken.views import ObtainAuthToken
+# from rest_framework.authtoken.views import ObtainAuthToken
+
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^snippets/', include('pastebin.urls')),
-    url(r'^login/$', ObtainAuthToken.as_view())
 ]
