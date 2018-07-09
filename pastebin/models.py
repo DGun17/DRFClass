@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import User
 from django.db import models
 from rest_framework.authtoken.models import Token
+from django.utils import timezone
 
 # Create your models here.
 
@@ -27,3 +28,5 @@ class AuthToken(Token):
     user = models.ForeignKey(User, related_name='auth_token',
                              on_delete=models.CASCADE, verbose_name=("User")
                              )
+
+    expire_date = models.DateTimeField(null=False, blank=False, default=timezone.now)

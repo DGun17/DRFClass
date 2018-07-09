@@ -17,6 +17,9 @@ from pastebin.models import Snippet, AuthToken
 from pastebin.serializers import SnippetModelSerializer
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework import exceptions
+from rest_framework.permissions import IsAuthenticated
+from datetime import timedelta
+from django.utils import timezone
 
 
 @csrf_exempt
@@ -99,7 +102,7 @@ snippet_view = SnippetView.as_view()
 
 
 class SnippetViewSet(ViewSet):
-    permission_classes = []
+    permission_classes = (IsAuthenticated, )
 
     def retrieve(self, request, pk=None):
         snippet = get_object_or_404(Snippet, pk=pk)
@@ -170,10 +173,16 @@ class LoginAPI(ObtainAuthToken):
         user = serializer.validated_data['user']
         sessions = AuthToken.objects.filter(user=user)
         if len(sessions) < 5:
-            token = AuthToken.objects.create(user=user)  # Create a token each login request
+            token = AuthToken.objects.create(user=user, expire_date=self._get_expire_time())  # Create a token each login request
         else:
             raise exceptions.AuthenticationFailed(detail='You have maximum login session (5)')
         return Response({'token': token.key})
+
+    @classmethod
+    def _get_expire_time(cls):
+        max_age = 300  # Number of seconds to expire session (5 Minutes)
+        expire_time = timezone.now() + timedelta(seconds=max_age)
+        return expire_time
 
 
 class LogoutAPI(APIView):
