@@ -20,6 +20,7 @@ from rest_framework import exceptions
 from rest_framework.permissions import IsAuthenticated
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
 
 
 @csrf_exempt
@@ -173,15 +174,15 @@ class LoginAPI(ObtainAuthToken):
         user = serializer.validated_data['user']
         sessions = AuthToken.objects.filter(user=user)
         if len(sessions) < 5:
-            token = AuthToken.objects.create(user=user, expire_date=self._get_expire_time())  # Create a token each login request
+            # Create a token each login request
+            token = AuthToken.objects.create(user=user, expire_date=self._get_expire_time())
         else:
             raise exceptions.AuthenticationFailed(detail='You have maximum login session (5)')
         return Response({'token': token.key})
 
     @classmethod
     def _get_expire_time(cls):
-        max_age = 300  # Number of seconds to expire session (5 Minutes)
-        expire_time = timezone.now() + timedelta(seconds=max_age)
+        expire_time = timezone.now() + timedelta(seconds=getattr(settings, 'REST_TOKEN_EXPIRE_SECONDS', None) or 300)
         return expire_time
 
 

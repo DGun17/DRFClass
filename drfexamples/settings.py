@@ -116,3 +116,5 @@ REST_FRAMEWORK = {
         'pastebin.authentication.CustomTokenAuthentication',
     )
 }
+# REST_TOKEN_EXPIRE_SECONDS = 300
+# TOKEN_EXPIRE_UPDATE_EVERY_REQUEST = True
